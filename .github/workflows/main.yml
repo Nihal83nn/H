@@ -1,0 +1,29 @@
+image: python:3.10  # Use the Python 3.10 Docker image for the pipeline
+
+variables:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"  # Avoid unnecessary version checks
+  PIP_NO_CACHE_DIR: "1"  # Disable pip cache to save space
+  PYTHONUNBUFFERED: "1"  # Ensure output is streamed in real-time
+
+stages:
+  - deploy
+
+before_script:
+  # Upgrade pip to the latest version
+  - python -m pip install --upgrade pip setuptools wheel
+  # Install required dependencies
+  - pip install python-telegram-bot
+  # Make the binary executable (if present in the repo)
+  - chmod +x Moin || echo "Binary not found, skipping."
+
+deploy:
+  stage: deploy
+  script:
+    # Run the bot script continuously using nohup
+    - nohup python Moin.py > bot_output.log 2>&1 &
+    - echo "Bot is running in the background."
+
+    # Prevent container from exiting to keep the pipeline running 24/7
+    - tail -f /dev/null
+  only:
+    - main  # Run this pipeline only for changes on the main branch
